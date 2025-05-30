@@ -127,14 +127,7 @@ export class RichTextServer {
         this.broadcast({
           type: "cursor",
           clientId: msg.clientId,
-          cursor: {
-            id: msg.cursor.id,
-            position: msg.cursor.position,
-            selection: {
-              start: msg.cursor.selection.start,
-              end: msg.cursor.selection.end,
-            },
-          },
+          position: msg.position,
         })
         break;
 

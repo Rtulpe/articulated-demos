@@ -51,21 +51,11 @@ function send(msg: ClientMessage): void {
 
 function onCursorChange(idSel: any, pos: number) {
   // Compose a ClientCursorMessage and send it
-  let selection = { start: pos, end: pos };
-  if (idSel.type === "textRange") {
-    selection = { start: idSel.start, end: idSel.end };
-  } else if (idSel.type === "cursor") {
-    selection = { start: idSel.id, end: idSel.id };
-  }
   const msg = {
     type: "cursor" as const,
     clientId,
-    cursor: {
-      id: clientId,
-      position: pos,
-      selection,
-    },
-  };
+    position: pos,
+   };
   send(msg);
 }
 

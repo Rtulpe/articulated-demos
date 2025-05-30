@@ -259,12 +259,13 @@ export class ProseMirrorWrapper {
   receiveCursor(cursorMsg: ClientCursorMessage): void {
     if (cursorMsg.clientId === this.clientId) return;
     const doc = this.view.state.doc;
-    const { cursor } = cursorMsg;
+    // Use cursorMsg.selection or cursorMsg.position depending on your protocol
+    // Here, assuming the property is 'position'
     let pos: number;
-    if (typeof cursor.position === "number") {
-      pos = Math.max(0, Math.min(doc.content.size, cursor.position));
+    if (typeof cursorMsg.position === "number") {
+      pos = Math.max(0, Math.min(doc.content.size, cursorMsg.position));
     } else {
-      pos = this.serverIdList.indexOf(cursor.position, "right");
+      pos = this.serverIdList.indexOf(cursorMsg.position, "right");
       if (pos < 0) pos = 0;
     }
     this.renderRemoteCursorOverlay(cursorMsg.clientId, pos);

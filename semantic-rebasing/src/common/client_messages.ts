@@ -9,14 +9,7 @@ export type ClientMutationMessage = {
 export type ClientCursorMessage = {
   type: "cursor";
   clientId: string;
-  cursor: {
-    id: string;
-    position: number;
-    selection: {
-      start: number;
-      end: number;
-    };
-  };
+  position: number;
 }
 
 export type ClientMessage = ClientMutationMessage | ClientCursorMessage;

@@ -21,14 +21,7 @@ export type ServerMutationMessage = {
 export type ServerCursorMessage = {
   type: "cursor";
   clientId: string;
-  cursor: {
-    id: string;
-    position: number;
-    selection: {
-      start: number;
-      end: number;
-    };
-  };
+  position: number;
 };
 
 export type ServerMessage = ServerMutationMessage | ServerHelloMessage | ServerCursorMessage;
