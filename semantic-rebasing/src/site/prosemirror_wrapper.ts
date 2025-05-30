@@ -100,9 +100,7 @@ export class ProseMirrorWrapper {
       const nextState = this.view.state.apply(tr);
       const nextSel = nextState.selection;
       this.view.updateState(nextState);
-      // Only fire if selection actually changed
       if (
-        (prevSel.from !== nextSel.from || prevSel.to !== nextSel.to) &&
         this.onCursorChange
       ) {
         const idSel = selectionToIds(nextState, this.trackedIds.idList);
