@@ -94,6 +94,7 @@ export class RichTextServer {
 
   private wsReceive(ws: WebSocket, data: string) {
     const msg = JSON.parse(data) as ClientMessage;
+    console.log("Received message:", msg);
     switch (msg.type) {
       case "mutation":
         const tr = this.state.tr;
@@ -121,8 +122,25 @@ export class RichTextServer {
           senderCounter: msg.mutations.at(-1)!.clientCounter,
         });
         break;
+
+      case "cursor":
+        this.broadcast({
+          type: "cursor",
+          clientId: msg.clientId,
+          cursor: {
+            id: msg.cursor.id,
+            position: msg.cursor.position,
+            selection: {
+              start: msg.cursor.selection.start,
+              end: msg.cursor.selection.end,
+            },
+          },
+        })
+        break;
+
+
       default:
-        console.error("Unknown message type: " + msg.type);
+        console.error("Unknown message type: " + (msg as ClientMessage).type);
     }
   }
 }

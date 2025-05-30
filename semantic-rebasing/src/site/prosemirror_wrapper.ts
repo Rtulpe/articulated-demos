@@ -53,6 +53,7 @@ export class ProseMirrorWrapper {
   constructor(
     readonly clientId: string,
     readonly onLocalMutation: (mutation: ClientMutation) => void,
+    readonly onCursorChange: (sel: IdSelection, pos: number) => void,
     helloMessage: ServerHelloMessage
   ) {
     this.serverState = EditorState.create({
@@ -69,8 +70,20 @@ export class ProseMirrorWrapper {
   }
 
   private dispatchTransaction(tr: Transaction): void {
+    // Detect selection-only changes
     if (tr.getMeta(META_KEY) !== undefined || tr.steps.length === 0) {
-      this.view.updateState(this.view.state.apply(tr));
+      const prevSel = this.view.state.selection;
+      const nextState = this.view.state.apply(tr);
+      const nextSel = nextState.selection;
+      this.view.updateState(nextState);
+      // Only fire if selection actually changed
+      if (
+        (prevSel.from !== nextSel.from || prevSel.to !== nextSel.to) &&
+        this.onCursorChange
+      ) {
+        const idSel = selectionToIds(nextState, this.trackedIds.idList);
+        this.onCursorChange(idSel, nextSel.from);
+      }
       return;
     }
 

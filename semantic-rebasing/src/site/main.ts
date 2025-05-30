@@ -13,7 +13,12 @@ client.onMessage = (data) => {
   const msg = JSON.parse(data) as ServerMessage;
   if (msg.type === "hello") {
     // Got the initial state. Start ProseMirror.
-    const wrapper = new ProseMirrorWrapper(clientId, onLocalMutation, msg);
+    const wrapper = new ProseMirrorWrapper(
+      clientId,
+      onLocalMutation,
+      onCursorChange,
+      msg
+    );
     client.onMessage = (data) => onMessage(data, wrapper);
   } else {
     console.error("Received non-welcome message first: " + msg.type);
@@ -38,6 +43,26 @@ function onLocalMutation(mutation: ClientMutation) {
 
 function send(msg: ClientMessage): void {
   client.send(JSON.stringify(msg));
+}
+
+function onCursorChange(idSel: any, pos: number) {
+  // Compose a ClientCursorMessage and send it
+  let selection = { start: pos, end: pos };
+  if (idSel.type === "textRange") {
+    selection = { start: idSel.start, end: idSel.end };
+  } else if (idSel.type === "cursor") {
+    selection = { start: idSel.id, end: idSel.id };
+  }
+  const msg = {
+    type: "cursor" as const,
+    clientId,
+    cursor: {
+      id: clientId,
+      position: pos,
+      selection,
+    },
+  };
+  send(msg);
 }
 
 // --- "Connected" checkbox for testing concurrency ---

@@ -6,4 +6,19 @@ export type ClientMutationMessage = {
   mutations: ClientMutation[];
 };
 
-export type ClientMessage = ClientMutationMessage;
+export type ClientCursorMessage = {
+  type: "cursor";
+  clientId: string;
+  cursor: {
+    id: string;
+    position: number;
+    selection: {
+      start: number;
+      end: number;
+    };
+  };
+}
+
+export type ClientMessage = ClientMutationMessage | ClientCursorMessage;
+
+

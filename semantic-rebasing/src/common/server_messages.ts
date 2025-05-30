@@ -18,4 +18,17 @@ export type ServerMutationMessage = {
   senderCounter: number;
 };
 
-export type ServerMessage = ServerMutationMessage | ServerHelloMessage;
+export type ServerCursorMessage = {
+  type: "cursor";
+  clientId: string;
+  cursor: {
+    id: string;
+    position: number;
+    selection: {
+      start: number;
+      end: number;
+    };
+  };
+};
+
+export type ServerMessage = ServerMutationMessage | ServerHelloMessage | ServerCursorMessage;
