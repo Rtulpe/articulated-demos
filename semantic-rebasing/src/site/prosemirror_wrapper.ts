@@ -9,7 +9,8 @@ import {
   Transaction,
 } from "prosemirror-state";
 import { ReplaceStep, Step } from "prosemirror-transform";
-import { EditorView } from "prosemirror-view";
+import { EditorView, Decoration, DecorationSet } from "prosemirror-view";
+import { Plugin, PluginKey, EditorState as PMEditorState } from "prosemirror-state";
 import "prosemirror-view/style/prosemirror.css";
 import {
   allHandlers,
@@ -24,6 +25,7 @@ import {
   ServerMutationMessage,
 } from "../common/server_messages";
 import { TrackedIdList } from "../common/tracked_id_list";
+import type { ClientCursorMessage } from "../common/client_messages";
 
 const DEBUG = false;
 const META_KEY = "ProsemirrorWrapper";
@@ -50,6 +52,9 @@ export class ProseMirrorWrapper {
    */
   private trackedIds: TrackedIdList;
 
+  private _remoteCursorOverlays: Map<string, HTMLElement> = new Map();
+  private _remoteCursorPositions: Map<string, number> = new Map();
+
   constructor(
     readonly clientId: string,
     readonly onLocalMutation: (mutation: ClientMutation) => void,
@@ -67,6 +72,25 @@ export class ProseMirrorWrapper {
       dispatchTransaction: (tr) => this.dispatchTransaction(tr),
     });
     this.trackedIds = new TrackedIdList(this.serverIdList, false);
+    this._remoteCursorOverlays = new Map();
+    window.addEventListener("scroll", () => this.updateAllRemoteCursorOverlays(), true);
+    window.addEventListener("resize", () => this.updateAllRemoteCursorOverlays());
+  }
+
+  private updateAllRemoteCursorOverlays() {
+    for (const [clientId, overlay] of this._remoteCursorOverlays.entries()) {
+      // Find the position for this client (parse from overlay id)
+      // We need to store the last known position for each client
+      // Store it in a new map: _remoteCursorPositions
+      if (!this._remoteCursorPositions) continue;
+      const pos = this._remoteCursorPositions.get(clientId);
+      if (typeof pos === "number") {
+        const coords = this.view.coordsAtPos(pos);
+        overlay.style.left = coords.left + "px";
+        overlay.style.top = coords.top + "px";
+        overlay.style.height = (coords.bottom - coords.top) + "px";
+      }
+    }
   }
 
   private dispatchTransaction(tr: Transaction): void {
@@ -230,7 +254,90 @@ export class ProseMirrorWrapper {
     tr.setMeta("addToHistory", false);
     this.view.updateState(this.serverState.apply(tr));
   }
+
+  // Cursor tracking of other users.
+  receiveCursor(cursorMsg: ClientCursorMessage): void {
+    if (cursorMsg.clientId === this.clientId) return;
+    const doc = this.view.state.doc;
+    const { cursor } = cursorMsg;
+    let pos: number;
+    if (typeof cursor.position === "number") {
+      pos = Math.max(0, Math.min(doc.content.size, cursor.position));
+    } else {
+      pos = this.serverIdList.indexOf(cursor.position, "right");
+      if (pos < 0) pos = 0;
+    }
+    this.renderRemoteCursorOverlay(cursorMsg.clientId, pos);
+  }
+
+  private renderRemoteCursorOverlay(clientId: string, pos: number) {
+    // Remove any existing overlay for this client
+    let existing = this._remoteCursorOverlays.get(clientId);
+    if (existing) existing.remove();
+    // Get coordinates for the position
+    const coords = this.view.coordsAtPos(pos);
+    // Create overlay
+    const overlay = document.createElement("div");
+    overlay.id = `remote-cursor-overlay-${clientId}`;
+    overlay.className = "remote-cursor-overlay";
+    overlay.style.position = "absolute";
+    overlay.style.left = coords.left + "px";
+    overlay.style.top = coords.top + "px";
+    overlay.style.height = (coords.bottom - coords.top) + "px";
+    overlay.style.width = "2px";
+    overlay.style.background = this.colorForClient(clientId);
+    overlay.style.zIndex = "1000";
+    overlay.style.pointerEvents = "none";
+    // Optional: add label
+    const label = document.createElement("div");
+    label.textContent = clientId;
+    label.style.position = "absolute";
+    label.style.top = "-1.2em";
+    label.style.left = "-10px";
+    label.style.background = this.colorForClient(clientId);
+    label.style.color = "#fff";
+    label.style.fontSize = "10px";
+    label.style.padding = "0 4px";
+    label.style.borderRadius = "3px";
+    label.style.whiteSpace = "nowrap";
+    overlay.appendChild(label);
+    // Append to editor's offsetParent (usually the editor container)
+    const container = this.view.dom.offsetParent || document.body;
+    container.appendChild(overlay);
+    // Store for later cleanup if needed
+    this._remoteCursorOverlays.set(clientId, overlay);
+    // Store the position for later updates
+    if (!this._remoteCursorPositions) this._remoteCursorPositions = new Map();
+    this._remoteCursorPositions.set(clientId, pos);
+  }
+
+  // Remove all remote cursor overlays (e.g., on destroy or re-render)
+  private removeAllRemoteCursorOverlays() {
+    for (const overlay of this._remoteCursorOverlays.values()) {
+      overlay.remove();
+    }
+    this._remoteCursorOverlays.clear();
+  }
+
+  private colorForClient(clientId: string): string {
+    const colors = [
+      "#e57373",
+      "#64b5f6",
+      "#81c784",
+      "#ffd54f",
+      "#ba68c8",
+      "#4dd0e1",
+      "#ffb74d",
+      "#a1887f",
+    ];
+    let hash = 0;
+    for (let i = 0; i < clientId.length; i++)
+      hash = (hash * 31 + clientId.charCodeAt(i)) % colors.length;
+    return colors[Math.abs(hash) % colors.length];
+  }
 }
+
+// Remove the cursorWidget method and .remote-cursor CSS, as overlays are now used
 
 type IdSelection =
   | {

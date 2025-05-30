@@ -27,9 +27,13 @@ client.onMessage = (data) => {
 
 function onMessage(data: string, wrapper: ProseMirrorWrapper): void {
   const msg = JSON.parse(data) as ServerMessage;
+  console.log("Received message:", msg);
   switch (msg.type) {
     case "mutation":
       wrapper.receive(msg);
+      break;
+    case "cursor":
+      wrapper.receiveCursor(msg);
       break;
     default:
       console.error("Unexpected message type:", msg.type, msg);

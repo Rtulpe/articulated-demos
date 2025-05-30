@@ -7,8 +7,8 @@
     <style>
       /* Styles based on https://prosemirror.net/examples/collab/ */
       #editor {
-        background: white;
-        color: black;
+        background: black;
+        color: white;
         background-clip: padding-box;
         border-radius: 4px;
         border: 2px solid rgba(0, 0, 0, 0.2);
@@ -26,6 +26,29 @@
         outline: none;
         height: 500px;
         overflow-y: auto;
+      }
+
+      .remote-cursor {
+        width: 8px !important;
+        min-width: 8px !important;
+        max-width: 8px !important;
+        height: 1.2em !important;
+        background: #ff4081 !important;
+        border: 2px solid #fff !important;
+        border-radius: 2px !important;
+        box-shadow: 0 0 4px #000, 0 0 0 2px #fff;
+        z-index: 1000 !important;
+        position: relative !important;
+        pointer-events: none !important;
+        outline: 2px solid #000 !important;
+        opacity: 1 !important;
+        display: inline-block !important;
+        /* fallback color, will be overridden inline */
+      }
+      /* Optional: style for remote selection highlight */
+      .ProseMirror span[style*="background"] {
+        border-radius: 2px;
+        box-shadow: 0 0 2px #0008;
       }
     </style>
 
